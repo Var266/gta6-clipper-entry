@@ -5,7 +5,8 @@
 // and the bounty's line in its description. This program does the one mechanical
 // thing the gate needs: it hands VIDEO.json — the file naming the video's URL —
 // from the repository root to the output directory, byte for byte, after
-// checking the file parses and names a YouTube address. It reads no network,
+// checking the file parses and names a YouTube address with a valid
+// 11-character video id. It reads no network,
 // keeps no clock, and writes the same bytes on every run.
 //
 // Local check:
@@ -43,6 +44,17 @@ const looksLikeYoutube =
   /^https:\/\/(www\.|m\.)?(youtube\.com\/(shorts\/|watch\?)|youtu\.be\/)/.test(url);
 if (!looksLikeYoutube) {
   fail('VIDEO.json does not name a YouTube video URL');
+}
+
+// The gate only accepts an 11-character video id ([A-Za-z0-9_-]{11}):
+// reject a well-formed YouTube address carrying a short, long or
+// malformed id here instead of shipping an entry the gate refuses.
+const idMatch = (url as string).match(
+  /(?:shorts\/|watch\?v=|youtu\.be\/)([A-Za-z0-9_-]+)/,
+);
+const videoId = idMatch?.[1];
+if (!videoId || !/^[A-Za-z0-9_-]{11}$/.test(videoId)) {
+  fail('VIDEO.json URL does not carry an 11-character YouTube video id');
 }
 
 mkdirSync(outDir, { recursive: true });
